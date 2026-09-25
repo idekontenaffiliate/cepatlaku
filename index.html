@@ -4,15 +4,33 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Motor Market</title>
+<meta name="color-scheme" content="dark light">
 <style>
-<style>
-  :root{
+  /* ---------- TEMA GELAP (default) ---------- */
+  :root, :root[data-theme="dark"]{
+    color-scheme: dark;
     --asphalt:#1c1e22; --asphalt-2:#26292e; --plate-amber:#f2b418; --plate-amber-dark:#c8930a;
     --steel:#7c8894; --steel-light:#aeb8c2; --paper:#f3f1ea; --ok:#4c9a6a; --danger:#c1543f; --line:#383c42;
+    --input-bg:#15171a; --thumb-empty-bg:#111318; --modal-overlay:rgba(0,0,0,.6); --active-bg:#1c1f24;
+  }
+  /* ---------- TEMA TERANG ---------- */
+  :root[data-theme="light"]{
+    color-scheme: light;
+    --asphalt:#f2f3f5; --asphalt-2:#ffffff; --plate-amber:#f2b418; --plate-amber-dark:#c8930a;
+    --steel:#8a94a0; --steel-light:#4c5560; --paper:#1c1e22; --ok:#2f7d4f; --danger:#b8402c; --line:#dde1e6;
+    --input-bg:#f4f5f7; --thumb-empty-bg:#e8eaed; --modal-overlay:rgba(20,24,30,.45); --active-bg:#e9ebee;
   }
   *{box-sizing:border-box;}
-  body{ margin:0; font-family:'Segoe UI', Roboto, Arial, sans-serif; background:var(--asphalt); color:var(--paper); min-height:100vh; }
+  body{ margin:0; font-family:'Segoe UI', Roboto, Arial, sans-serif; background:var(--asphalt); color:var(--paper); min-height:100vh; transition:background-color .15s, color .15s; }
   .hidden{display:none !important;}
+
+  .theme-toggle{
+    display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:50%;
+    border:1px solid var(--line); background:var(--asphalt-2); color:var(--paper); font-size:16px; cursor:pointer; flex-shrink:0;
+  }
+  .theme-toggle:active{ transform:scale(0.92); }
+  .login-top{ display:flex; justify-content:flex-end; max-width:340px; width:100%; margin:0 auto 10px; }
+  .public-top{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
 
   .brand{ display:flex; align-items:center; gap:10px; }
   .plate{
@@ -28,9 +46,20 @@
   .field label{ display:block; font-size:13px; color:var(--steel-light); margin-bottom:5px; }
   .field input, .field select, .field textarea{
     width:100%; padding:10px 11px; border-radius:6px; border:1px solid var(--line);
-    background:#15171a; color:var(--paper); font-size:14px;
+    background:var(--input-bg); color:var(--paper); font-size:14px;
   }
   .field textarea{ resize:vertical; min-height:60px; }
+  .field input:focus, .field select:focus, .field textarea:focus{ outline:2px solid var(--plate-amber); outline-offset:-1px; }
+  /* Cegah browser (autofill / auto-dark HP) bikin tulisan di field jadi tak kelihatan */
+  .field input:-webkit-autofill,
+  .field input:-webkit-autofill:hover,
+  .field input:-webkit-autofill:focus{
+    -webkit-text-fill-color: var(--paper) !important;
+    -webkit-box-shadow: 0 0 0px 1000px var(--input-bg) inset !important;
+    box-shadow: 0 0 0px 1000px var(--input-bg) inset !important;
+    caret-color: var(--paper);
+    transition: background-color 9999s ease-in-out 0s;
+  }
   .btn{
     display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:10px 16px;
     border-radius:6px; border:none; font-size:14px; font-weight:600; cursor:pointer; transition:transform .05s;
@@ -57,12 +86,12 @@
   .panel-head h2{ font-size:16px; margin:0; color:var(--steel-light); font-weight:600; }
 
   .search-bar{ display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
-  .search-bar input[type=text]{ flex:1; min-width:180px; padding:10px 12px; border-radius:6px; border:1px solid var(--line); background:#15171a; color:var(--paper); font-size:14px; }
-  .search-bar select{ padding:10px 12px; border-radius:6px; border:1px solid var(--line); background:#15171a; color:var(--paper); font-size:14px; }
+  .search-bar input[type=text]{ flex:1; min-width:180px; padding:10px 12px; border-radius:6px; border:1px solid var(--line); background:var(--input-bg); color:var(--paper); font-size:14px; }
+  .search-bar select{ padding:10px 12px; border-radius:6px; border:1px solid var(--line); background:var(--input-bg); color:var(--paper); font-size:14px; }
 
   .grid{ display:grid; grid-template-columns:1fr; gap:12px; }
   .motor-card{ background:var(--asphalt-2); border:1px solid var(--line); border-radius:10px; padding:14px; display:flex; gap:14px; }
-  .motor-thumb{ width:96px; height:72px; border-radius:6px; object-fit:cover; background:#111; flex-shrink:0; }
+  .motor-thumb{ width:96px; height:72px; border-radius:6px; object-fit:cover; background:var(--thumb-empty-bg); flex-shrink:0; }
   .motor-thumb.empty{ display:flex; align-items:center; justify-content:center; color:var(--steel); font-size:11px; }
   .motor-info{ flex:1; min-width:0; }
   .motor-title{ font-weight:700; font-size:15px; margin-bottom:2px; }
@@ -75,7 +104,7 @@
   .motor-actions{ display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
   .motor-actions .btn{ padding:7px 12px; font-size:12.5px; }
 
-  .modal-bg{ position:fixed; inset:0; background:rgba(0,0,0,.6); display:flex; align-items:flex-start; justify-content:center; padding:24px 16px; overflow-y:auto; z-index:50; }
+  .modal-bg{ position:fixed; inset:0; background:var(--modal-overlay); display:flex; align-items:flex-start; justify-content:center; padding:24px 16px; overflow-y:auto; z-index:50; }
   .modal{ background:var(--asphalt-2); border:1px solid var(--line); border-radius:10px; padding:24px; width:100%; max-width:520px; }
   .modal h3{ margin-top:0; }
   .form-row2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
@@ -84,7 +113,7 @@
   .photo-thumb img{ width:100%; height:100%; object-fit:cover; border-radius:6px; }
   .photo-thumb .rm{ position:absolute; top:-6px; right:-6px; background:var(--danger); color:#fff; border:none; width:18px; height:18px; border-radius:50%; font-size:11px; cursor:pointer; line-height:1; }
   .modal-actions{ display:flex; gap:10px; justify-content:flex-end; margin-top:20px; }
-  .suggest-box{ background:#15171a; border:1px dashed var(--line); border-radius:6px; padding:10px 12px; font-size:12.5px; color:var(--steel-light); margin-top:6px; }
+  .suggest-box{ background:var(--input-bg); border:1px dashed var(--line); border-radius:6px; padding:10px 12px; font-size:12.5px; color:var(--steel-light); margin-top:6px; }
   .suggest-box b{ color:var(--plate-amber); }
 
   #publicScreen{ max-width:520px; margin:0 auto; padding:20px 16px 50px; }
@@ -118,9 +147,9 @@
 
   /* Checklist — dibuat besar & mudah ditekan jempol di HP */
   .checklist{ display:flex; flex-direction:column; gap:2px; margin-top:6px; border:1px solid var(--line); border-radius:8px; overflow:hidden; }
-  .checklist-item{ display:flex; align-items:center; gap:12px; padding:13px 14px; background:#15171a; cursor:pointer; user-select:none; border-bottom:1px solid var(--line); }
+  .checklist-item{ display:flex; align-items:center; gap:12px; padding:13px 14px; background:var(--input-bg); cursor:pointer; user-select:none; border-bottom:1px solid var(--line); }
   .checklist-item:last-child{ border-bottom:none; }
-  .checklist-item:active{ background:#1c1f24; }
+  .checklist-item:active{ background:var(--active-bg); }
   .checklist-item input[type=checkbox]{ width:22px; height:22px; flex-shrink:0; accent-color:var(--plate-amber); }
   .checklist-item span{ font-size:14px; }
   .checklist-progress{ font-size:12px; color:var(--steel-light); margin-top:6px; }
@@ -134,7 +163,10 @@
 
 <!-- ================= PUBLIC VIEW (link ke pembeli) ================= -->
 <div id="publicScreen" class="hidden">
-  <div class="plate" style="margin-bottom:16px;">MOTOR MARKET</div>
+  <div class="public-top">
+    <div class="plate" style="margin-bottom:0;">MOTOR MARKET</div>
+    <button class="theme-toggle" onclick="toggleTheme()" id="themeBtnPublic" title="Ganti tema">🌙</button>
+  </div>
   <div id="publicGate" class="name-gate">
     <div class="field"><label>Nama Anda (opsional)</label><input id="viewerName" type="text" placeholder="mis. Budi"></div>
     <button class="btn btn-primary btn-block" onclick="loadPublicMotor()">Lihat Detail Motor</button>
@@ -144,6 +176,9 @@
 
 <!-- ================= LOGIN ================= -->
 <div id="loginScreen" class="hidden">
+  <div class="login-top">
+    <button class="theme-toggle" onclick="toggleTheme()" id="themeBtnLogin" title="Ganti tema">🌙</button>
+  </div>
   <div class="login-card">
     <div class="plate">MOTOR MARKET</div>
     <div class="brand-sub" style="margin-bottom:20px;">Masuk untuk mengelola data motor</div>
@@ -160,6 +195,7 @@
   <div class="topbar">
     <div class="brand"><div class="plate">MOTOR MARKET</div><span class="brand-sub" id="whoami"></span></div>
     <div class="topbar-actions">
+      <button class="theme-toggle" onclick="toggleTheme()" id="themeBtnApp" title="Ganti tema">🌙</button>
       <button class="btn btn-ghost" onclick="openChangePass()">Ganti Password</button>
       <button class="btn btn-ghost" onclick="doLogout()">Keluar</button>
     </div>
@@ -362,20 +398,52 @@
     return fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(body) })
       .then(r => {
         if (!r.ok) throw new Error('Gagal menghubungi server (HTTP ' + r.status + ').');
-        return r.json();
+        return r.text();
       })
-      .then(res => {
-        if (!res || !res.ok) throw new Error((res && res.error) || 'Terjadi kesalahan tidak diketahui.');
+      .then(text => {
+        let res;
+        try {
+          res = JSON.parse(text);
+        } catch (e) {
+          console.error('Respons server bukan JSON, isinya:', text);
+          throw new Error('Server tidak merespons dengan format yang benar. Kemungkinan besar Code.gs di Apps Script belum di-deploy ulang sebagai versi baru (Deploy > Manage deployments > Edit > New version), atau APPS_SCRIPT_URL di index.html salah.');
+        }
+        if (!res || !res.ok) throw new Error((res && res.error) || 'Terjadi kesalahan tidak diketahui dari server.');
         return res.data;
       })
       .catch(err => {
         if (err instanceof TypeError) {
-          // Biasanya ini berarti APPS_SCRIPT_URL belum diganti / salah, atau CORS gagal.
-          throw new Error('Tidak bisa terhubung ke server. Cek APPS_SCRIPT_URL di index.html sudah benar & sudah di-deploy ulang.');
+          // Biasanya ini berarti APPS_SCRIPT_URL belum diganti / salah, koneksi mati, atau CORS gagal.
+          throw new Error('Tidak bisa terhubung ke server. Cek koneksi internet, dan pastikan APPS_SCRIPT_URL di index.html sudah benar & Apps Script sudah di-deploy sebagai Web App ("Anyone" access).');
         }
         throw err;
       });
   }
+
+  // ---------- TEMA (terang/gelap) ----------
+  const THEME_KEY = 'mm_theme';
+  function initTheme(){
+    let theme = localStorage.getItem(THEME_KEY);
+    if(!theme){
+      theme = (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark';
+    }
+    applyTheme(theme);
+  }
+  function applyTheme(theme){
+    document.documentElement.setAttribute('data-theme', theme);
+    const icon = theme === 'light' ? '☀️' : '🌙';
+    ['themeBtnLogin','themeBtnApp','themeBtnPublic'].forEach(id => {
+      const btn = document.getElementById(id);
+      if(btn) btn.textContent = icon;
+    });
+  }
+  function toggleTheme(){
+    const current = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+    const next = current === 'light' ? 'dark' : 'light';
+    localStorage.setItem(THEME_KEY, next);
+    applyTheme(next);
+  }
+  initTheme();
 
   const PUBLIC_MOTOR_ID = new URLSearchParams(window.location.search).get('id') || '';
   const SESSION_KEY = 'mm_session';
