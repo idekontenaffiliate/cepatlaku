@@ -109,6 +109,22 @@
 
   .name-gate{ background:var(--asphalt-2); border:1px solid var(--line); border-radius:10px; padding:18px; margin-bottom:14px; }
   .name-gate .field{ margin-bottom:10px; }
+
+  .badge-surat-lengkap-hidup{ background:rgba(76,154,106,.18); color:var(--ok); }
+  .badge-surat-lengkap-mati{ background:rgba(193,84,63,.18); color:var(--danger); }
+  .badge-surat-tidak-lengkap{ background:rgba(124,136,148,.2); color:var(--steel-light); }
+
+  /* Checklist — dibuat besar & mudah ditekan jempol di HP */
+  .checklist{ display:flex; flex-direction:column; gap:2px; margin-top:6px; border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+  .checklist-item{ display:flex; align-items:center; gap:12px; padding:13px 14px; background:#15171a; cursor:pointer; user-select:none; border-bottom:1px solid var(--line); }
+  .checklist-item:last-child{ border-bottom:none; }
+  .checklist-item:active{ background:#1c1f24; }
+  .checklist-item input[type=checkbox]{ width:22px; height:22px; flex-shrink:0; accent-color:var(--plate-amber); }
+  .checklist-item span{ font-size:14px; }
+  .checklist-progress{ font-size:12px; color:var(--steel-light); margin-top:6px; }
+  .checklist-view{ display:flex; flex-direction:column; gap:6px; margin-top:6px; }
+  .checklist-view .ok{ color:var(--ok); }
+  .checklist-view .no{ color:var(--steel); }
 </style>
 </head>
 <body>
@@ -171,6 +187,12 @@
         <option value="">Semua tipe</option>
         <option value="bersih">Bersih</option>
         <option value="tidak bersih">Tidak bersih</option>
+      </select>
+      <select id="motorFilterSurat" onchange="renderMotorList()">
+        <option value="">Semua status surat</option>
+        <option value="lengkap-hidup">Lengkap — Pajak Hidup</option>
+        <option value="lengkap-mati">Lengkap — Pajak Mati</option>
+        <option value="tidak-lengkap">Tidak Lengkap</option>
       </select>
     </div>
     <div class="grid" id="motorList"></div>
@@ -242,7 +264,28 @@
     <div class="field"><label>Catatan internal</label><textarea id="mCatatan"></textarea></div>
 
     <div class="field">
-      <label>Foto</label>
+      <label>Status Surat / Pajak</label>
+      <select id="mSuratStatus">
+        <option value="lengkap-hidup">Lengkap — Pajak Hidup</option>
+        <option value="lengkap-mati">Lengkap — Pajak Mati</option>
+        <option value="tidak-lengkap">Tidak Lengkap</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>Checklist Verifikasi — tinggal dicentang dari HP</label>
+      <div class="checklist" id="checklistBox"></div>
+      <div class="checklist-progress" id="checklistProgress"></div>
+    </div>
+
+    <div class="field">
+      <label>Foto STNK / Screenshot Cek Pajak (mis. dari e-Samsat) — hanya untuk Anda, TIDAK dikirim ke pembeli</label>
+      <input type="file" id="mSuratPhotoInput" accept="image/*" multiple onchange="handleSuratPhotoSelect(event)">
+      <div class="photo-list" id="suratPhotoList"></div>
+    </div>
+
+    <div class="field">
+      <label>Foto Motor (untuk ditunjukkan ke pembeli)</label>
       <input type="file" id="mPhotoInput" accept="image/*" multiple onchange="handlePhotoSelect(event)">
       <div class="photo-list" id="photoList"></div>
     </div>
@@ -304,10 +347,20 @@
 <script>
   const PUBLIC_MOTOR_ID = <?= JSON.stringify(publicMotorId) ?>;
   const SESSION_KEY = 'mm_session';
+  const CHECKLIST_ITEMS = [
+    { key: 'stnkAda', label: 'STNK ada' },
+    { key: 'bpkbAda', label: 'BPKB ada' },
+    { key: 'pajakHidup', label: 'Pajak hidup (sudah dicek e-Samsat)' },
+    { key: 'noRangkaSesuai', label: 'Nomor rangka sesuai STNK' },
+    { key: 'noMesinSesuai', label: 'Nomor mesin sesuai STNK' },
+    { key: 'fisikDicek', label: 'Fisik sudah dicek langsung' },
+    { key: 'fotoLengkap', label: 'Foto motor & surat sudah lengkap' }
+  ];
   let session = null;
   let sellersCache = [];
   let motorsCache = [];
   let pendingPhotos = [];
+  let pendingSuratPhotos = [];
 
   window.addEventListener('DOMContentLoaded', () => {
     if (PUBLIC_MOTOR_ID) {
@@ -460,11 +513,13 @@
     const q = (document.getElementById('motorSearch').value || '').toLowerCase();
     const fStatus = document.getElementById('motorFilterStatus').value;
     const fTipe = document.getElementById('motorFilterTipe').value;
+    const fSurat = document.getElementById('motorFilterSurat').value;
     const list = motorsCache.filter(m => {
       if(fStatus && m.status !== fStatus) return false;
       if(fTipe && m.tipeBersih !== fTipe) return false;
+      if(fSurat && (m.suratStatus || 'lengkap-hidup') !== fSurat) return false;
       if(!q) return true;
-      const hay = [m.jenis,m.merek,String(m.tahun||''),m.sumberDari,m.mesinKondisi,m.eksteriorKondisi,m.catatan, m.seller ? m.seller.nama : '', m.seller ? m.seller.noWa : ''].join(' ').toLowerCase();
+      const hay = [m.jenis,m.merek,String(m.tahun||''),m.sumberDari,m.mesinKondisi,m.eksteriorKondisi,m.catatan, suratStatusLabel(m.suratStatus||'lengkap-hidup'), m.seller ? m.seller.nama : '', m.seller ? m.seller.noWa : ''].join(' ').toLowerCase();
       return hay.includes(q);
     });
     document.getElementById('motorCount').textContent = `Daftar Motor (${list.length} dari ${motorsCache.length})`;
@@ -476,12 +531,14 @@
       const naik10 = m.hargaBeli ? Math.round(m.hargaBeli * 1.1) : 0;
       const naik20 = m.hargaBeli ? Math.round(m.hargaBeli * 1.2) : 0;
       const profitLine = (m.status === 'terjual' && m.hargaJualAktual) ? `<div style="color:var(--ok)">Untung: <b>${formatRp(Number(m.hargaJualAktual) - Number(m.hargaBeli||0))}</b></div>` : '';
+      const suratKey = m.suratStatus || 'lengkap-hidup';
+      const checklistDone = (m.checklist || '').split(',').filter(Boolean).length;
       return `
       <div class="motor-card">
         ${thumb}
         <div class="motor-info">
-          <div class="motor-title">${escapeHtml(m.merek||'')} ${escapeHtml(m.jenis||'')} ${m.tahun||''} <span class="badge badge-${m.status==='terjual'?'terjual':'tersedia'}">${m.status==='terjual'?'Terjual':'Tersedia'}</span></div>
-          <div class="motor-sub">${escapeHtml(m.pemakaianKm ? m.pemakaianKm+' km' : '-')} · ${escapeHtml(m.tipeBersih||'-')} ${m.seller ? '· Penjual: '+escapeHtml(m.seller.nama) : ''} · ${m.viewCount||0}x diminta pembeli</div>
+          <div class="motor-title">${escapeHtml(m.merek||'')} ${escapeHtml(m.jenis||'')} ${m.tahun||''} <span class="badge badge-${m.status==='terjual'?'terjual':'tersedia'}">${m.status==='terjual'?'Terjual':'Tersedia'}</span> <span class="badge badge-surat-${suratKey}">${suratStatusLabel(suratKey)}</span></div>
+          <div class="motor-sub">${escapeHtml(m.pemakaianKm ? m.pemakaianKm+' km' : '-')} · ${escapeHtml(m.tipeBersih||'-')} ${m.seller ? '· Penjual: '+escapeHtml(m.seller.nama) : ''} · ${m.viewCount||0}x diminta pembeli · Checklist ${checklistDone}/${CHECKLIST_ITEMS.length}</div>
           <div class="price-row">
             <div>Beli: <b>${formatRp(m.hargaBeli)}</b></div>
             <div>Target jual: <b>${formatRp(m.hargaJualTarget)}</b></div>
@@ -498,6 +555,10 @@
     }).join('');
   }
 
+  function suratStatusLabel(key){
+    return { 'lengkap-hidup': 'Surat Lengkap · Pajak Hidup', 'lengkap-mati': 'Surat Lengkap · Pajak Mati', 'tidak-lengkap': 'Surat Tidak Lengkap' }[key] || key;
+  }
+
   function shareMotor(id){
     const url = window.location.href.split('?')[0] + '?id=' + id;
     navigator.clipboard && navigator.clipboard.writeText(url).catch(()=>{});
@@ -507,16 +568,52 @@
   function openMotorForm(){ resetMotorForm(); document.getElementById('motorModalTitle').textContent = 'Tambah Motor'; document.getElementById('motorModalBg').classList.remove('hidden'); }
   function closeMotorForm(){ document.getElementById('motorModalBg').classList.add('hidden'); }
 
+  function renderChecklistBox(checkedKeys){
+    const checked = new Set((checkedKeys || '').split(',').filter(Boolean));
+    document.getElementById('checklistBox').innerHTML = CHECKLIST_ITEMS.map(item => `
+      <label class="checklist-item">
+        <input type="checkbox" data-key="${item.key}" ${checked.has(item.key) ? 'checked' : ''} onchange="updateChecklistProgress()">
+        <span>${escapeHtml(item.label)}</span>
+      </label>`).join('');
+    updateChecklistProgress();
+  }
+  function getCheckedChecklist(){
+    return Array.from(document.querySelectorAll('#checklistBox input[type=checkbox]:checked')).map(el => el.dataset.key).join(',');
+  }
+  function updateChecklistProgress(){
+    const total = CHECKLIST_ITEMS.length;
+    const done = document.querySelectorAll('#checklistBox input[type=checkbox]:checked').length;
+    document.getElementById('checklistProgress').textContent = `${done} dari ${total} item sudah dicentang.`;
+  }
+
+  function handleSuratPhotoSelect(evt){
+    const files = Array.from(evt.target.files || []);
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = e => { pendingSuratPhotos.push({ dataUrl: e.target.result, base64: e.target.result.split(',')[1], mimeType: file.type, fileName: file.name }); renderSuratPhotoList(); };
+      reader.readAsDataURL(file);
+    });
+    evt.target.value = '';
+  }
+  function renderSuratPhotoList(){
+    document.getElementById('suratPhotoList').innerHTML = pendingSuratPhotos.map((p, idx) => `<div class="photo-thumb"><img src="${p.url || p.dataUrl}"><button class="rm" onclick="removeSuratPhoto(${idx})">×</button></div>`).join('');
+  }
+  function removeSuratPhoto(idx){ pendingSuratPhotos.splice(idx,1); renderSuratPhotoList(); }
+
   function resetMotorForm(){
     document.getElementById('motorId').value = '';
     ['mJenis','mMerek','mTahun','mKm','mMesin','mEksterior','mHargaBeli','mHargaJual','mHargaJualAktual','mSumber','mCatatan'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('mTipe').value = 'bersih';
     document.getElementById('mSeller').value = '';
     document.getElementById('mStatus').value = 'tersedia';
+    document.getElementById('mSuratStatus').value = 'lengkap-hidup';
     document.getElementById('motorFormErr').textContent = '';
     document.getElementById('suggestBox').innerHTML = 'Isi harga beli untuk lihat saran harga jual (+10% / +20%).';
     pendingPhotos = [];
+    pendingSuratPhotos = [];
     renderPhotoList();
+    renderSuratPhotoList();
+    renderChecklistBox('');
   }
 
   function editMotor(m){
@@ -537,9 +634,13 @@
     document.getElementById('mSeller').value = m.sellerId || '';
     document.getElementById('mStatus').value = m.status || 'tersedia';
     document.getElementById('mCatatan').value = m.catatan || '';
+    document.getElementById('mSuratStatus').value = m.suratStatus || 'lengkap-hidup';
     updateSuggest();
     pendingPhotos = (m.fotoUrls || '').split(',').filter(Boolean).map(u => ({ url: u }));
+    pendingSuratPhotos = (m.fotoSuratUrls || '').split(',').filter(Boolean).map(u => ({ url: u }));
     renderPhotoList();
+    renderSuratPhotoList();
+    renderChecklistBox(m.checklist || '');
     document.getElementById('motorModalBg').classList.remove('hidden');
   }
 
@@ -564,16 +665,34 @@
   }
   function removePhoto(idx){ pendingPhotos.splice(idx,1); renderPhotoList(); }
 
+  // Upload semua foto baru (yang belum punya .url) dalam sebuah daftar, lalu panggil onAllDone
+  // dengan gabungan URL lama + URL hasil upload. Dipakai bareng untuk foto motor & foto surat.
+  function uploadPendingList(list, onAllDone, onFail){
+    const toUpload = list.filter(p => !p.url);
+    const already = list.filter(p => p.url).map(p => p.url);
+    if(!toUpload.length){ onAllDone(already); return; }
+    let uploaded = [], count = 0, failed = false;
+    toUpload.forEach(p => {
+      google.script.run
+        .withSuccessHandler(url => {
+          if(failed) return;
+          uploaded.push(url); count++;
+          if(count === toUpload.length) onAllDone(already.concat(uploaded));
+        })
+        .withFailureHandler(err => { if(failed) return; failed = true; onFail(err); })
+        .uploadPhoto(session.token, p.base64, p.mimeType, p.fileName);
+    });
+  }
+
   function saveMotor(){
     const jenis = document.getElementById('mJenis').value.trim();
     if(!jenis){ document.getElementById('motorFormErr').textContent = 'Jenis motor wajib diisi.'; return; }
     const btn = document.getElementById('saveMotorBtn');
     btn.disabled = true; btn.textContent = 'Menyimpan…';
 
-    const toUpload = pendingPhotos.filter(p => !p.url);
-    const already = pendingPhotos.filter(p => p.url).map(p => p.url);
+    const onUploadFail = err => { btn.disabled=false; btn.textContent='Simpan'; document.getElementById('motorFormErr').textContent = 'Gagal upload foto: ' + err.message; };
 
-    function finishSave(allUrls){
+    function finishSave(motorFotoUrls, suratFotoUrls){
       const data = {
         jenis: jenis, merek: document.getElementById('mMerek').value.trim(), tahun: document.getElementById('mTahun').value,
         mesinKondisi: document.getElementById('mMesin').value.trim(), eksteriorKondisi: document.getElementById('mEksterior').value.trim(),
@@ -582,7 +701,10 @@
         hargaJualAktual: document.getElementById('mHargaJualAktual').value,
         sumberDari: document.getElementById('mSumber').value.trim(), sellerId: document.getElementById('mSeller').value,
         status: document.getElementById('mStatus').value, catatan: document.getElementById('mCatatan').value.trim(),
-        fotoUrls: allUrls.join(',')
+        fotoUrls: motorFotoUrls.join(','),
+        suratStatus: document.getElementById('mSuratStatus').value,
+        fotoSuratUrls: suratFotoUrls.join(','),
+        checklist: getCheckedChecklist()
       };
       const id = document.getElementById('motorId').value;
       const onDone = () => { btn.disabled=false; btn.textContent='Simpan'; closeMotorForm(); loadMotors(); };
@@ -591,14 +713,10 @@
       if(id) call.updateMotor(session.token, id, data); else call.addMotor(session.token, data);
     }
 
-    if(!toUpload.length){ finishSave(already); return; }
-    let uploaded = [], count = 0;
-    toUpload.forEach(p => {
-      google.script.run
-        .withSuccessHandler(url => { uploaded.push(url); count++; if(count === toUpload.length) finishSave(already.concat(uploaded)); })
-        .withFailureHandler(err => { btn.disabled=false; btn.textContent='Simpan'; document.getElementById('motorFormErr').textContent = 'Gagal upload foto: ' + err.message; })
-        .uploadPhoto(session.token, p.base64, p.mimeType, p.fileName);
-    });
+    // Upload foto motor dulu, lalu foto surat, baru simpan — supaya cuma satu jalur error yang perlu ditangani.
+    uploadPendingList(pendingPhotos, motorUrls => {
+      uploadPendingList(pendingSuratPhotos, suratUrls => finishSave(motorUrls, suratUrls), onUploadFail);
+    }, onUploadFail);
   }
 
   function removeMotor(id){
@@ -679,16 +797,28 @@
   function renderPublicMotor(m){
     const foto = (m.fotoUrls || '').split(',').filter(Boolean);
     const gallery = foto.length ? `<div class="public-gallery">${foto.map(u => `<img src="${u}">`).join('')}</div>` : '';
+    const suratKey = m.suratStatus || 'lengkap-hidup';
+    const checkedKeys = new Set((m.checklist || '').split(',').filter(Boolean));
+    const checklistHtml = `<div class="checklist-view">${CHECKLIST_ITEMS.map(item => {
+      const ok = checkedKeys.has(item.key);
+      return `<div class="${ok ? 'ok' : 'no'}">${ok ? '✓' : '○'} ${escapeHtml(item.label)}</div>`;
+    }).join('')}</div>`;
     document.getElementById('publicContent').innerHTML = `
       ${gallery}
       <div class="public-card">
         <div style="font-size:19px; font-weight:800;">${escapeHtml(m.merek||'')} ${escapeHtml(m.jenis||'')} ${m.tahun||''}</div>
         <div class="public-price">${formatRp(m.hargaJualTarget)}</div>
         <div class="spec-row"><span>Status</span><span>${m.status==='terjual'?'Terjual':'Tersedia'}</span></div>
+        <div class="spec-row"><span>Status Surat</span><span>${escapeHtml(suratStatusLabel(suratKey))}</span></div>
         <div class="spec-row"><span>Kondisi mesin</span><span>${escapeHtml(m.mesinKondisi||'-')}</span></div>
         <div class="spec-row"><span>Kondisi eksterior</span><span>${escapeHtml(m.eksteriorKondisi||'-')}</span></div>
         <div class="spec-row"><span>Pemakaian</span><span>${m.pemakaianKm ? m.pemakaianKm+' km' : '-'}</span></div>
         <div class="spec-row"><span>Tipe</span><span>${escapeHtml(m.tipeBersih||'-')}</span></div>
+      </div>
+      <div class="public-card" style="margin-top:12px;">
+        <div style="font-weight:700; margin-bottom:4px;">Checklist yang sudah dicek admin</div>
+        ${checklistHtml}
+        <div style="font-size:12px; color:var(--steel-light); margin-top:10px;">Tinggal cek fisik langsung ke motornya ya 👍</div>
       </div>`;
   }
 
