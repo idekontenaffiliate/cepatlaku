@@ -222,13 +222,29 @@
         <option value="tersedia">Tersedia</option>
         <option value="terjual">Terjual</option>
       </select>
+      <select id="motorFilterMerek" onchange="renderMotorList()">
+        <option value="">Semua merek</option>
+        <option value="Honda">Honda</option>
+        <option value="Yamaha">Yamaha</option>
+        <option value="Suzuki">Suzuki</option>
+        <option value="Kawasaki">Kawasaki</option>
+        <option value="TVS">TVS</option>
+      </select>
+      <select id="motorFilterMesin" onchange="renderMotorList()">
+        <option value="">Semua kondisi mesin</option>
+        <option value="Super Bagus">Super Bagus</option>
+        <option value="Bagus">Bagus</option>
+        <option value="Lumayan">Lumayan</option>
+        <option value="Agak Jelek">Agak Jelek</option>
+        <option value="Jelek">Jelek</option>
+      </select>
       <select id="motorFilterTipe" onchange="renderMotorList()">
-        <option value="">Semua tipe</option>
+        <option value="">Semua tipe surat</option>
         <option value="bersih">Bersih</option>
         <option value="tidak bersih">Tidak bersih</option>
       </select>
       <select id="motorFilterSurat" onchange="renderMotorList()">
-        <option value="">Semua status surat</option>
+        <option value="">Semua status pajak</option>
         <option value="lengkap-hidup">Lengkap — Pajak Hidup</option>
         <option value="lengkap-mati">Lengkap — Pajak Mati</option>
         <option value="tidak-lengkap">Tidak Lengkap</option>
@@ -278,24 +294,84 @@
     <h3 id="motorModalTitle">Tambah Motor</h3>
     <input type="hidden" id="motorId">
     <div class="form-row2">
-      <div class="field"><label>Jenis (mis. Beat, Vario)</label><input id="mJenis"></div>
-      <div class="field"><label>Merek</label><input id="mMerek" placeholder="Honda / Yamaha / dll"></div>
+      <div class="field">
+        <label>Merek</label>
+        <select id="mMerek" onchange="onMerekChange()">
+          <option value="">— Pilih Merek —</option>
+          <option value="Honda">Honda</option>
+          <option value="Yamaha">Yamaha</option>
+          <option value="Suzuki">Suzuki</option>
+          <option value="Kawasaki">Kawasaki</option>
+          <option value="TVS">TVS</option>
+          <option value="Lainnya">Lainnya (ketik manual)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Jenis / Model</label>
+        <select id="mJenis" onchange="onJenisChange()"></select>
+      </div>
     </div>
+    <div class="field hidden" id="mMerekLainWrap"><label>Nama Merek lainnya</label><input id="mMerekLain" placeholder="mis. Modenas, Bajaj, dll"></div>
+    <div class="field hidden" id="mJenisLainWrap"><label>Nama Jenis / Model lainnya</label><input id="mJenisLain" placeholder="Tulis jenis/model motornya"></div>
     <div class="form-row2">
       <div class="field"><label>Tahun</label><input id="mTahun" type="number" placeholder="2010"></div>
       <div class="field"><label>Pemakaian (km)</label><input id="mKm" type="number" placeholder="15000"></div>
     </div>
-    <div class="field"><label>Kondisi Mesin</label><input id="mMesin" placeholder="mis. halus, ada suara kasar, dll"></div>
-    <div class="field"><label>Kondisi Eksterior</label><input id="mEksterior" placeholder="mis. mulus, baret halus, dll"></div>
+    <div class="form-row2">
+      <div class="field">
+        <label>Kondisi Mesin</label>
+        <select id="mMesin">
+          <option value="">— Pilih Kondisi —</option>
+          <option value="Super Bagus">Super Bagus</option>
+          <option value="Bagus">Bagus</option>
+          <option value="Lumayan">Lumayan</option>
+          <option value="Agak Jelek">Agak Jelek</option>
+          <option value="Jelek">Jelek</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Kondisi Eksterior</label>
+        <select id="mEksterior">
+          <option value="">— Pilih Kondisi —</option>
+          <option value="Super Bagus">Super Bagus</option>
+          <option value="Bagus">Bagus</option>
+          <option value="Lumayan">Lumayan</option>
+          <option value="Agak Jelek">Agak Jelek</option>
+          <option value="Jelek">Jelek</option>
+        </select>
+      </div>
+    </div>
+    <div class="field"><label>Catatan tambahan kondisi mesin (opsional)</label><input id="mMesinCatatan" placeholder="mis. ada suara kasar di gigi 2"></div>
+    <div class="field"><label>Catatan tambahan kondisi eksterior (opsional)</label><input id="mEksteriorCatatan" placeholder="mis. baret halus di body kiri"></div>
     <div class="field">
-      <label>Tipe</label>
-      <select id="mTipe"><option value="bersih">Bersih (surat lengkap)</option><option value="tidak bersih">Tidak bersih</option></select>
+      <label>Tipe Surat</label>
+      <select id="mTipe" onchange="onTipeChange()">
+        <option value="bersih">Bersih — Surat Lengkap (BPKB, STNK, Faktur Pajak)</option>
+        <option value="tidak bersih">Tidak Bersih</option>
+      </select>
+    </div>
+    <div class="field hidden" id="suratKurangWrap">
+      <label>Surat yang kurang (boleh pilih lebih dari satu)</label>
+      <div class="checklist" id="suratKurangBox"></div>
     </div>
     <div class="form-row2">
       <div class="field"><label>Harga Beli (Rp)</label><input id="mHargaBeli" type="number" oninput="updateSuggest()"></div>
-      <div class="field"><label>Harga Jual Target (Rp)</label><input id="mHargaJual" type="number"></div>
+      <div class="field">
+        <label>Margin Jual (%)</label>
+        <select id="mHargaPercent" onchange="updateSuggest()">
+          <option value="10">10%</option>
+          <option value="15">15%</option>
+          <option value="20" selected>20%</option>
+          <option value="25">25%</option>
+          <option value="30">30%</option>
+        </select>
+      </div>
     </div>
-    <div class="suggest-box" id="suggestBox">Isi harga beli untuk lihat saran harga jual (+10% / +20%).</div>
+    <div class="suggest-box" id="suggestBox">Isi harga beli untuk lihat saran harga jual.</div>
+    <div class="form-row2">
+      <div class="field"><label>Harga Jual Target (Rp)</label><input id="mHargaJual" type="number"></div>
+      <div class="field" style="display:flex; align-items:flex-end;"><button type="button" class="btn btn-ghost btn-block" onclick="checkMarketPrice()">🔎 Cek Harga Pasar</button></div>
+    </div>
     <div class="field" style="margin-top:14px;"><label>Harga Jual Aktual — isi setelah motor benar-benar laku (Rp)</label><input id="mHargaJualAktual" type="number" placeholder="Kosongkan jika belum terjual"></div>
     <div class="field"><label>Didapat dari mana</label><input id="mSumber" placeholder="mis. Facebook Marketplace, showroom X, dll"></div>
     <div class="field"><label>Penjual</label><select id="mSeller"><option value="">— Belum diisi —</option></select></div>
@@ -456,6 +532,23 @@
     { key: 'fisikDicek', label: 'Fisik sudah dicek langsung' },
     { key: 'fotoLengkap', label: 'Foto motor & surat sudah lengkap' }
   ];
+  // Daftar merek -> jenis/model umum, supaya saat tambah motor tinggal PILIH, tidak perlu
+  // mengetik (mengurangi typo yang bikin filter/pencarian jadi tidak akurat). Merek/jenis yang
+  // tidak ada di daftar tetap bisa dipilih lewat opsi "Lainnya (ketik manual)".
+  const MEREK_JENIS_MAP = {
+    'Honda': ['Beat','Vario','Scoopy','PCX','ADV160','Genio','Blade','Supra X','Revo','CB150R','CBR150R','Sonic150R','CRF150L','Verza','Tiger'],
+    'Yamaha': ['NMAX','Aerox','Mio','Xeon','Fino','Freego','Lexi','Gear','Jupiter MX','Vixion','R15','MX King','Fazzio'],
+    'Suzuki': ['Nex','Address','Satria F150','GSX-R150','Smash','Shogun'],
+    'Kawasaki': ['Ninja','KLX150','W175','Athlete'],
+    'TVS': ['Dazz','Sport']
+  };
+  const MEREK_LIST = Object.keys(MEREK_JENIS_MAP);
+  // Surat yang bisa "kurang" saat tipe = Tidak Bersih — bisa dicentang lebih dari satu.
+  const SURAT_KURANG_ITEMS = [
+    { key: 'bpkb', label: 'BPKB' },
+    { key: 'stnk', label: 'STNK' },
+    { key: 'faktur', label: 'Faktur Pajak' }
+  ];
   let session = null;
   let sellersCache = [];
   let motorsCache = [];
@@ -613,14 +706,18 @@
   function renderMotorList(){
     const q = (document.getElementById('motorSearch').value || '').toLowerCase();
     const fStatus = document.getElementById('motorFilterStatus').value;
+    const fMerek = document.getElementById('motorFilterMerek').value;
+    const fMesin = document.getElementById('motorFilterMesin').value;
     const fTipe = document.getElementById('motorFilterTipe').value;
     const fSurat = document.getElementById('motorFilterSurat').value;
     const list = motorsCache.filter(m => {
       if(fStatus && m.status !== fStatus) return false;
+      if(fMerek && m.merek !== fMerek) return false;
+      if(fMesin && m.mesinKondisi !== fMesin) return false;
       if(fTipe && m.tipeBersih !== fTipe) return false;
       if(fSurat && (m.suratStatus || 'lengkap-hidup') !== fSurat) return false;
       if(!q) return true;
-      const hay = [m.jenis,m.merek,String(m.tahun||''),m.sumberDari,m.mesinKondisi,m.eksteriorKondisi,m.catatan, suratStatusLabel(m.suratStatus||'lengkap-hidup'), m.seller ? m.seller.nama : '', m.seller ? m.seller.noWa : ''].join(' ').toLowerCase();
+      const hay = [m.jenis,m.merek,String(m.tahun||''),m.sumberDari,m.mesinKondisi,m.mesinKondisiCatatan,m.eksteriorKondisi,m.eksteriorKondisiCatatan,m.catatan, suratStatusLabel(m.suratStatus||'lengkap-hidup'), tipeSuratDisplay(m), m.seller ? m.seller.nama : '', m.seller ? m.seller.noWa : ''].join(' ').toLowerCase();
       return hay.includes(q);
     });
     document.getElementById('motorCount').textContent = `Daftar Motor (${list.length} dari ${motorsCache.length})`;
@@ -629,8 +726,8 @@
     el.innerHTML = list.map(m => {
       const foto = (m.fotoUrls || '').split(',').filter(Boolean);
       const thumb = foto.length ? `<img class="motor-thumb" src="${foto[0]}">` : `<div class="motor-thumb empty">Tanpa foto</div>`;
-      const naik10 = m.hargaBeli ? Math.round(m.hargaBeli * 1.1) : 0;
-      const naik20 = m.hargaBeli ? Math.round(m.hargaBeli * 1.2) : 0;
+      const pct = Number(m.hargaJualPercent) || 20;
+      const saran = m.hargaBeli ? Math.round(m.hargaBeli * (1 + pct/100)) : 0;
       const profitLine = (m.status === 'terjual' && m.hargaJualAktual) ? `<div style="color:var(--ok)">Untung: <b>${formatRp(Number(m.hargaJualAktual) - Number(m.hargaBeli||0))}</b></div>` : '';
       const suratKey = m.suratStatus || 'lengkap-hidup';
       const checklistDone = (m.checklist || '').split(',').filter(Boolean).length;
@@ -639,11 +736,11 @@
         ${thumb}
         <div class="motor-info">
           <div class="motor-title">${escapeHtml(m.merek||'')} ${escapeHtml(m.jenis||'')} ${m.tahun||''} <span class="badge badge-${m.status==='terjual'?'terjual':'tersedia'}">${m.status==='terjual'?'Terjual':'Tersedia'}</span> <span class="badge badge-surat-${suratKey}">${suratStatusLabel(suratKey)}</span></div>
-          <div class="motor-sub">${escapeHtml(m.pemakaianKm ? m.pemakaianKm+' km' : '-')} · ${escapeHtml(m.tipeBersih||'-')} ${m.seller ? '· Penjual: '+escapeHtml(m.seller.nama) : ''} · ${m.viewCount||0}x diminta pembeli · Checklist ${checklistDone}/${CHECKLIST_ITEMS.length}</div>
+          <div class="motor-sub">${escapeHtml(m.pemakaianKm ? m.pemakaianKm+' km' : '-')} · Mesin: ${escapeHtml(m.mesinKondisi||'-')} · Eksterior: ${escapeHtml(m.eksteriorKondisi||'-')} · ${escapeHtml(tipeSuratDisplay(m))} ${m.seller ? '· Penjual: '+escapeHtml(m.seller.nama) : ''} · ${m.viewCount||0}x diminta pembeli · Checklist ${checklistDone}/${CHECKLIST_ITEMS.length}</div>
           <div class="price-row">
             <div>Beli: <b>${formatRp(m.hargaBeli)}</b></div>
             <div>Target jual: <b>${formatRp(m.hargaJualTarget)}</b></div>
-            ${m.hargaBeli ? `<div style="color:var(--steel-light)">Saran +10–20%: ${formatRp(naik10)} – ${formatRp(naik20)}</div>` : ''}
+            ${m.hargaBeli ? `<div style="color:var(--steel-light)">Saran +${pct}%: ${formatRp(saran)}</div>` : ''}
             ${profitLine}
           </div>
           <div class="motor-actions">
@@ -703,13 +800,19 @@
 
   function resetMotorForm(){
     document.getElementById('motorId').value = '';
-    ['mJenis','mMerek','mTahun','mKm','mMesin','mEksterior','mHargaBeli','mHargaJual','mHargaJualAktual','mSumber','mCatatan'].forEach(id => document.getElementById(id).value = '');
+    ['mTahun','mKm','mMesinCatatan','mEksteriorCatatan','mHargaBeli','mHargaJual','mHargaJualAktual','mSumber','mCatatan'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('mMesin').value = '';
+    document.getElementById('mEksterior').value = '';
+    document.getElementById('mHargaPercent').value = '20';
+    setMerekJenisForEdit('', '');
     document.getElementById('mTipe').value = 'bersih';
+    onTipeChange();
+    renderSuratKurangBox('');
     document.getElementById('mSeller').value = '';
     document.getElementById('mStatus').value = 'tersedia';
     document.getElementById('mSuratStatus').value = 'lengkap-hidup';
     document.getElementById('motorFormErr').textContent = '';
-    document.getElementById('suggestBox').innerHTML = 'Isi harga beli untuk lihat saran harga jual (+10% / +20%).';
+    document.getElementById('suggestBox').innerHTML = 'Isi harga beli untuk lihat saran harga jual.';
     pendingPhotos = [];
     pendingSuratPhotos = [];
     renderPhotoList();
@@ -721,14 +824,18 @@
     resetMotorForm();
     document.getElementById('motorId').value = m.id;
     document.getElementById('motorModalTitle').textContent = 'Edit Motor';
-    document.getElementById('mJenis').value = m.jenis || '';
-    document.getElementById('mMerek').value = m.merek || '';
+    setMerekJenisForEdit(m.merek || '', m.jenis || '');
     document.getElementById('mTahun').value = m.tahun || '';
     document.getElementById('mKm').value = m.pemakaianKm || '';
     document.getElementById('mMesin').value = m.mesinKondisi || '';
+    document.getElementById('mMesinCatatan').value = m.mesinKondisiCatatan || '';
     document.getElementById('mEksterior').value = m.eksteriorKondisi || '';
+    document.getElementById('mEksteriorCatatan').value = m.eksteriorKondisiCatatan || '';
     document.getElementById('mTipe').value = m.tipeBersih || 'bersih';
+    onTipeChange();
+    renderSuratKurangBox(m.suratKurang || '');
     document.getElementById('mHargaBeli').value = m.hargaBeli || '';
+    document.getElementById('mHargaPercent').value = m.hargaJualPercent || '20';
     document.getElementById('mHargaJual').value = m.hargaJualTarget || '';
     document.getElementById('mHargaJualAktual').value = m.hargaJualAktual || '';
     document.getElementById('mSumber').value = m.sumberDari || '';
@@ -747,8 +854,100 @@
 
   function updateSuggest(){
     const beli = Number(document.getElementById('mHargaBeli').value) || 0;
+    const pct = Number(document.getElementById('mHargaPercent').value) || 20;
     const box = document.getElementById('suggestBox');
-    box.innerHTML = beli ? `Saran harga jual — <b>+10%: ${formatRp(Math.round(beli*1.1))}</b> &nbsp;|&nbsp; <b>+20%: ${formatRp(Math.round(beli*1.2))}</b>` : 'Isi harga beli untuk lihat saran harga jual (+10% / +20%).';
+    if(!beli){ box.innerHTML = 'Isi harga beli untuk lihat saran harga jual.'; return; }
+    const saran = Math.round(beli * (1 + pct/100));
+    box.innerHTML = `Saran harga jual (+${pct}%): <b>${formatRp(saran)}</b> &nbsp; <button type="button" class="btn btn-primary" style="padding:4px 10px;font-size:12px;" onclick="applySuggestedPrice(${saran})">Pakai harga ini</button>`;
+  }
+  function applySuggestedPrice(v){ document.getElementById('mHargaJual').value = v; }
+
+  // Cari referensi harga pasar lewat pencarian Google (tab baru) — tanpa API/scraping otomatis
+  // karena tidak ada sumber data harga motor bekas Indonesia yang resmi & bisa diandalkan untuk
+  // ditarik otomatis. Ini jalan pintas supaya tetap sedikit klik saja.
+  function checkMarketPrice(){
+    const merek = getSelectedMerek();
+    const jenis = getSelectedJenis();
+    const tahun = document.getElementById('mTahun').value;
+    if(!jenis){ alert('Pilih jenis/model motor dulu.'); return; }
+    const q = encodeURIComponent(('harga motor bekas ' + merek + ' ' + jenis + ' ' + tahun).replace(/\s+/g,' ').trim());
+    window.open('https://www.google.com/search?q=' + q, '_blank');
+  }
+
+  // ---------- MEREK / JENIS (select berjenjang, dengan fallback ketik manual) ----------
+  function onMerekChange(){
+    const merek = document.getElementById('mMerek').value;
+    document.getElementById('mMerekLainWrap').classList.toggle('hidden', merek !== 'Lainnya');
+    if(merek !== 'Lainnya') document.getElementById('mMerekLain').value = '';
+    populateJenisSelect(merek, '');
+  }
+  function populateJenisSelect(merek, selectedValue){
+    const list = MEREK_JENIS_MAP[merek] || [];
+    const jenisSel = document.getElementById('mJenis');
+    jenisSel.innerHTML = '<option value="">— Pilih Jenis/Model —</option>' +
+      list.map(j => `<option value="${j}">${j}</option>`).join('') +
+      '<option value="__lainnya__">Lainnya (ketik manual)</option>';
+    if(selectedValue && list.includes(selectedValue)){
+      jenisSel.value = selectedValue;
+      document.getElementById('mJenisLain').value = '';
+    } else if(selectedValue){
+      jenisSel.value = '__lainnya__';
+      document.getElementById('mJenisLain').value = selectedValue;
+    } else {
+      jenisSel.value = '';
+      document.getElementById('mJenisLain').value = '';
+    }
+    onJenisChange();
+  }
+  function onJenisChange(){
+    const jenis = document.getElementById('mJenis').value;
+    document.getElementById('mJenisLainWrap').classList.toggle('hidden', jenis !== '__lainnya__');
+  }
+  function getSelectedMerek(){
+    const v = document.getElementById('mMerek').value;
+    return v === 'Lainnya' ? document.getElementById('mMerekLain').value.trim() : v;
+  }
+  function getSelectedJenis(){
+    const v = document.getElementById('mJenis').value;
+    return v === '__lainnya__' ? document.getElementById('mJenisLain').value.trim() : v;
+  }
+  // Isi ulang pilihan merek/jenis saat edit motor — kalau merek/jenis data lama tidak ada di
+  // daftar tetap (mis. data lama hasil ketik manual), otomatis jatuh ke opsi "Lainnya".
+  function setMerekJenisForEdit(merek, jenis){
+    const merekVal = MEREK_LIST.includes(merek) ? merek : (merek ? 'Lainnya' : '');
+    document.getElementById('mMerek').value = merekVal;
+    document.getElementById('mMerekLainWrap').classList.toggle('hidden', merekVal !== 'Lainnya');
+    document.getElementById('mMerekLain').value = merekVal === 'Lainnya' ? (merek || '') : '';
+    populateJenisSelect(merekVal, jenis || '');
+  }
+
+  // ---------- TIPE SURAT / SURAT KURANG ----------
+  function onTipeChange(){
+    const tipe = document.getElementById('mTipe').value;
+    document.getElementById('suratKurangWrap').classList.toggle('hidden', tipe !== 'tidak bersih');
+  }
+  function renderSuratKurangBox(checkedKeys){
+    const checked = new Set((checkedKeys || '').split(',').filter(Boolean));
+    document.getElementById('suratKurangBox').innerHTML = SURAT_KURANG_ITEMS.map(item => `
+      <label class="checklist-item">
+        <input type="checkbox" data-key="${item.key}" ${checked.has(item.key) ? 'checked' : ''}>
+        <span>Kurang ${escapeHtml(item.label)}</span>
+      </label>`).join('');
+  }
+  function getCheckedSuratKurang(){
+    return Array.from(document.querySelectorAll('#suratKurangBox input[type=checkbox]:checked')).map(el => el.dataset.key).join(',');
+  }
+  function suratKurangLabel(keys){
+    const map = { bpkb: 'BPKB', stnk: 'STNK', faktur: 'Faktur Pajak' };
+    const list = (keys || '').split(',').filter(Boolean).map(k => map[k] || k);
+    return list.length ? 'Kurang ' + list.join(', ') : '';
+  }
+  function tipeSuratDisplay(m){
+    if((m.tipeBersih || 'bersih') === 'tidak bersih'){
+      const kurang = suratKurangLabel(m.suratKurang);
+      return 'Tidak Bersih' + (kurang ? ' (' + kurang + ')' : '');
+    }
+    return 'Bersih (Surat Lengkap)';
   }
 
   function handlePhotoSelect(evt){
@@ -784,17 +983,22 @@
   }
 
   function saveMotor(){
-    const jenis = document.getElementById('mJenis').value.trim();
-    if(!jenis){ document.getElementById('motorFormErr').textContent = 'Jenis motor wajib diisi.'; return; }
+    const jenis = getSelectedJenis();
+    const merek = getSelectedMerek();
+    if(!jenis){ document.getElementById('motorFormErr').textContent = 'Jenis/Model motor wajib dipilih (atau ditulis jika "Lainnya").'; return; }
+    const tipe = document.getElementById('mTipe').value;
     const btn = document.getElementById('saveMotorBtn');
     btn.disabled = true; btn.textContent = 'Menyimpan…';
 
     function finishSave(motorFotoUrls, suratFotoUrls){
       const data = {
-        jenis: jenis, merek: document.getElementById('mMerek').value.trim(), tahun: document.getElementById('mTahun').value,
-        mesinKondisi: document.getElementById('mMesin').value.trim(), eksteriorKondisi: document.getElementById('mEksterior').value.trim(),
-        pemakaianKm: document.getElementById('mKm').value, tipeBersih: document.getElementById('mTipe').value,
-        hargaBeli: document.getElementById('mHargaBeli').value, hargaJualTarget: document.getElementById('mHargaJual').value,
+        jenis: jenis, merek: merek, tahun: document.getElementById('mTahun').value,
+        mesinKondisi: document.getElementById('mMesin').value, mesinKondisiCatatan: document.getElementById('mMesinCatatan').value.trim(),
+        eksteriorKondisi: document.getElementById('mEksterior').value, eksteriorKondisiCatatan: document.getElementById('mEksteriorCatatan').value.trim(),
+        pemakaianKm: document.getElementById('mKm').value, tipeBersih: tipe,
+        suratKurang: tipe === 'tidak bersih' ? getCheckedSuratKurang() : '',
+        hargaBeli: document.getElementById('mHargaBeli').value, hargaJualPercent: document.getElementById('mHargaPercent').value,
+        hargaJualTarget: document.getElementById('mHargaJual').value,
         hargaJualAktual: document.getElementById('mHargaJualAktual').value,
         sumberDari: document.getElementById('mSumber').value.trim(), sellerId: document.getElementById('mSeller').value,
         status: document.getElementById('mStatus').value, catatan: document.getElementById('mCatatan').value.trim(),
@@ -906,9 +1110,11 @@
         <div class="spec-row"><span>Status</span><span>${m.status==='terjual'?'Terjual':'Tersedia'}</span></div>
         <div class="spec-row"><span>Status Surat</span><span>${escapeHtml(suratStatusLabel(suratKey))}</span></div>
         <div class="spec-row"><span>Kondisi mesin</span><span>${escapeHtml(m.mesinKondisi||'-')}</span></div>
+        ${m.mesinKondisiCatatan ? `<div class="spec-row"><span>Catatan mesin</span><span>${escapeHtml(m.mesinKondisiCatatan)}</span></div>` : ''}
         <div class="spec-row"><span>Kondisi eksterior</span><span>${escapeHtml(m.eksteriorKondisi||'-')}</span></div>
+        ${m.eksteriorKondisiCatatan ? `<div class="spec-row"><span>Catatan eksterior</span><span>${escapeHtml(m.eksteriorKondisiCatatan)}</span></div>` : ''}
         <div class="spec-row"><span>Pemakaian</span><span>${m.pemakaianKm ? m.pemakaianKm+' km' : '-'}</span></div>
-        <div class="spec-row"><span>Tipe</span><span>${escapeHtml(m.tipeBersih||'-')}</span></div>
+        <div class="spec-row"><span>Tipe Surat</span><span>${escapeHtml(tipeSuratDisplay(m))}</span></div>
       </div>
       <div class="public-card" style="margin-top:12px;">
         <div style="font-weight:700; margin-bottom:4px;">Checklist yang sudah dicek admin</div>
