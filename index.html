@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<style>
+  :root{
+    --asphalt:#1c1e22; --asphalt-2:#26292e; --plate-amber:#f2b418; --plate-amber-dark:#c8930a;
+    --steel:#7c8894; --steel-light:#aeb8c2; --paper:#f3f1ea; --ok:#4c9a6a; --danger:#c1543f; --line:#383c42;
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; font-family:'Segoe UI', Roboto, Arial, sans-serif; background:var(--asphalt); color:var(--paper); min-height:100vh; }
+  .hidden{display:none !important;}
+
+  .brand{ display:flex; align-items:center; gap:10px; }
+  .plate{
+    background:var(--plate-amber); color:var(--asphalt); font-weight:800; letter-spacing:2px; font-size:18px;
+    padding:6px 12px; border-radius:4px; border:2px solid var(--asphalt); font-family:'Courier New', monospace;
+  }
+  .brand-sub{ color:var(--steel-light); font-size:13px; }
+
+  #loginScreen{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
+  .login-card{ background:var(--asphalt-2); border:1px solid var(--line); border-radius:10px; padding:32px; width:100%; max-width:340px; }
+  .login-card .plate{ display:inline-block; margin-bottom:18px; }
+  .field{ margin-bottom:14px; }
+  .field label{ display:block; font-size:13px; color:var(--steel-light); margin-bottom:5px; }
+  .field input, .field select, .field textarea{
+    width:100%; padding:10px 11px; border-radius:6px; border:1px solid var(--line);
+    background:#15171a; color:var(--paper); font-size:14px;
+  }
+  .field textarea{ resize:vertical; min-height:60px; }
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:10px 16px;
+    border-radius:6px; border:none; font-size:14px; font-weight:600; cursor:pointer; transition:transform .05s;
+  }
+  .btn:active{ transform:scale(0.98); }
+  .btn:disabled{ opacity:.6; cursor:default; }
+  .btn-primary{ background:var(--plate-amber); color:var(--asphalt); }
+  .btn-primary:hover{ background:var(--plate-amber-dark); }
+  .btn-ghost{ background:transparent; color:var(--steel-light); border:1px solid var(--line); }
+  .btn-ghost:hover{ border-color:var(--steel); color:var(--paper); }
+  .btn-danger{ background:transparent; color:var(--danger); border:1px solid var(--danger); }
+  .btn-block{ width:100%; }
+  .err{ color:var(--danger); font-size:13px; margin-top:8px; min-height:18px; }
+  .msg{ color:var(--ok); font-size:13px; margin-top:8px; min-height:18px; }
+
+  #appScreen{ max-width:1000px; margin:0 auto; padding:18px 16px 60px; }
+  .topbar{ display:flex; justify-content:space-between; align-items:center; padding:10px 0 18px; border-bottom:1px solid var(--line); margin-bottom:18px; flex-wrap:wrap; gap:10px; }
+  .topbar-actions{ display:flex; gap:8px; }
+  .tabs{ display:flex; gap:4px; margin-bottom:18px; border-bottom:1px solid var(--line); overflow-x:auto; }
+  .tab{ padding:10px 16px; cursor:pointer; color:var(--steel-light); font-size:14px; font-weight:600; border-bottom:2px solid transparent; white-space:nowrap; }
+  .tab.active{ color:var(--plate-amber); border-bottom-color:var(--plate-amber); }
+
+  .panel-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px; }
+  .panel-head h2{ font-size:16px; margin:0; color:var(--steel-light); font-weight:600; }
+
+  .search-bar{ display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
+  .search-bar input[type=text]{ flex:1; min-width:180px; padding:10px 12px; border-radius:6px; border:1px solid var(--line); background:#15171a; color:var(--paper); font-size:14px; }
+  .search-bar select{ padding:10px 12px; border-radius:6px; border:1px solid var(--line); background:#15171a; color:var(--paper); font-size:14px; }
+
+  .grid{ display:grid; grid-template-columns:1fr; gap:12px; }
+  .motor-card{ background:var(--asphalt-2); border:1px solid var(--line); border-radius:10px; padding:14px; display:flex; gap:14px; }
+  .motor-thumb{ width:96px; height:72px; border-radius:6px; object-fit:cover; background:#111; flex-shrink:0; }
+  .motor-thumb.empty{ display:flex; align-items:center; justify-content:center; color:var(--steel); font-size:11px; }
+  .motor-info{ flex:1; min-width:0; }
+  .motor-title{ font-weight:700; font-size:15px; margin-bottom:2px; }
+  .motor-sub{ color:var(--steel-light); font-size:12.5px; margin-bottom:8px; }
+  .badge{ display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; border-radius:20px; letter-spacing:.3px; }
+  .badge-tersedia{ background:rgba(76,154,106,.18); color:var(--ok); }
+  .badge-terjual{ background:rgba(193,84,63,.18); color:var(--danger); }
+  .price-row{ display:flex; gap:16px; margin:8px 0; font-size:13px; flex-wrap:wrap; }
+  .price-row b{ color:var(--paper); }
+  .motor-actions{ display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
+  .motor-actions .btn{ padding:7px 12px; font-size:12.5px; }
+
+  .modal-bg{ position:fixed; inset:0; background:rgba(0,0,0,.6); display:flex; align-items:flex-start; justify-content:center; padding:24px 16px; overflow-y:auto; z-index:50; }
+  .modal{ background:var(--asphalt-2); border:1px solid var(--line); border-radius:10px; padding:24px; width:100%; max-width:520px; }
+  .modal h3{ margin-top:0; }
+  .form-row2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .photo-list{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+  .photo-thumb{ position:relative; width:64px; height:64px; }
+  .photo-thumb img{ width:100%; height:100%; object-fit:cover; border-radius:6px; }
+  .photo-thumb .rm{ position:absolute; top:-6px; right:-6px; background:var(--danger); color:#fff; border:none; width:18px; height:18px; border-radius:50%; font-size:11px; cursor:pointer; line-height:1; }
+  .modal-actions{ display:flex; gap:10px; justify-content:flex-end; margin-top:20px; }
+  .suggest-box{ background:#15171a; border:1px dashed var(--line); border-radius:6px; padding:10px 12px; font-size:12.5px; color:var(--steel-light); margin-top:6px; }
+  .suggest-box b{ color:var(--plate-amber); }
+
+  #publicScreen{ max-width:520px; margin:0 auto; padding:20px 16px 50px; }
+  .public-gallery{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:16px 0; }
+  .public-gallery img{ width:100%; height:130px; object-fit:cover; border-radius:8px; }
+  .public-card{ background:var(--asphalt-2); border:1px solid var(--line); border-radius:10px; padding:18px; }
+  .spec-row{ display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--line); font-size:14px; }
+  .spec-row:last-child{ border-bottom:none; }
+  .spec-row span:first-child{ color:var(--steel-light); }
+  .public-price{ font-size:28px; font-weight:800; color:var(--plate-amber); margin:14px 0 4px; }
+  .empty-state{ text-align:center; color:var(--steel-light); padding:40px 16px; font-size:14px; }
+  .loading{ text-align:center; padding:60px 16px; color:var(--steel-light); }
+
+  .stat-cards{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-bottom:18px; }
+  .stat-card{ background:var(--asphalt-2); border:1px solid var(--line); border-radius:10px; padding:16px; }
+  .stat-card .label{ font-size:12px; color:var(--steel-light); margin-bottom:6px; }
+  .stat-card .value{ font-size:20px; font-weight:800; }
+  .stat-card .value.pos{ color:var(--ok); }
+  .stat-card .value.neg{ color:var(--danger); }
+
+  table{ width:100%; border-collapse:collapse; font-size:13.5px; }
+  table th, table td{ text-align:left; padding:9px 10px; border-bottom:1px solid var(--line); }
+  table th{ color:var(--steel-light); font-weight:600; font-size:12px; }
+
+  .name-gate{ background:var(--asphalt-2); border:1px solid var(--line); border-radius:10px; padding:18px; margin-bottom:14px; }
+  .name-gate .field{ margin-bottom:10px; }
+</style>
+</head>
+<body>
+
+<!-- ================= PUBLIC VIEW (link ke pembeli) ================= -->
+<div id="publicScreen" class="hidden">
+  <div class="plate" style="margin-bottom:16px;">MOTOR MARKET</div>
+  <div id="publicGate" class="name-gate">
+    <div class="field"><label>Nama Anda (opsional)</label><input id="viewerName" type="text" placeholder="mis. Budi"></div>
+    <button class="btn btn-primary btn-block" onclick="loadPublicMotor()">Lihat Detail Motor</button>
+  </div>
+  <div id="publicContent"></div>
+</div>
+
+<!-- ================= LOGIN ================= -->
+<div id="loginScreen" class="hidden">
+  <div class="login-card">
+    <div class="plate">MOTOR MARKET</div>
+    <div class="brand-sub" style="margin-bottom:20px;">Masuk untuk mengelola data motor</div>
+    <div class="field"><label>Username</label><input id="loginUser" type="text" autocomplete="username"></div>
+    <div class="field"><label>Password</label><input id="loginPass" type="password" autocomplete="current-password"></div>
+    <button class="btn btn-primary btn-block" onclick="doLogin()">Masuk</button>
+    <div class="err" id="loginErr"></div>
+    <div class="brand-sub" style="margin-top:14px;">Setelah login, Anda akan tetap tersambung di perangkat ini — tidak perlu login ulang tiap buka aplikasi.</div>
+  </div>
+</div>
+
+<!-- ================= APP (admin) ================= -->
+<div id="appScreen" class="hidden">
+  <div class="topbar">
+    <div class="brand"><div class="plate">MOTOR MARKET</div><span class="brand-sub" id="whoami"></span></div>
+    <div class="topbar-actions">
+      <button class="btn btn-ghost" onclick="openChangePass()">Ganti Password</button>
+      <button class="btn btn-ghost" onclick="doLogout()">Keluar</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" id="tabMotorBtn" onclick="switchTab('motor')">Motor</div>
+    <div class="tab" id="tabSellerBtn" onclick="switchTab('seller')">Penjual</div>
+    <div class="tab" id="tabReportBtn" onclick="switchTab('report')">Laporan</div>
+    <div class="tab" id="tabHistoryBtn" onclick="switchTab('history')">Riwayat</div>
+    <div class="tab" id="tabUsersBtn" onclick="switchTab('users')">Pengguna</div>
+  </div>
+
+  <!-- TAB MOTOR -->
+  <div id="tabMotor">
+    <div class="panel-head">
+      <h2 id="motorCount">Daftar Motor</h2>
+      <button class="btn btn-primary" onclick="openMotorForm()">+ Tambah Motor</button>
+    </div>
+    <div class="search-bar">
+      <input type="text" id="motorSearch" placeholder="Cari jenis, merek, tahun, sumber, penjual…" oninput="renderMotorList()">
+      <select id="motorFilterStatus" onchange="renderMotorList()">
+        <option value="">Semua status</option>
+        <option value="tersedia">Tersedia</option>
+        <option value="terjual">Terjual</option>
+      </select>
+      <select id="motorFilterTipe" onchange="renderMotorList()">
+        <option value="">Semua tipe</option>
+        <option value="bersih">Bersih</option>
+        <option value="tidak bersih">Tidak bersih</option>
+      </select>
+    </div>
+    <div class="grid" id="motorList"></div>
+  </div>
+
+  <!-- TAB SELLER -->
+  <div id="tabSeller" class="hidden">
+    <div class="panel-head">
+      <h2>Daftar Penjual</h2>
+      <button class="btn btn-primary" onclick="openSellerForm()">+ Tambah Penjual</button>
+    </div>
+    <div class="search-bar">
+      <input type="text" id="sellerSearch" placeholder="Cari nama, no WA, alamat…" oninput="renderSellerList()">
+    </div>
+    <div class="grid" id="sellerList"></div>
+  </div>
+
+  <!-- TAB LAPORAN -->
+  <div id="tabReport" class="hidden">
+    <div class="panel-head"><h2>Laporan Untung per Unit</h2></div>
+    <div class="stat-cards" id="reportStats"></div>
+    <div id="reportTableWrap"></div>
+  </div>
+
+  <!-- TAB RIWAYAT -->
+  <div id="tabHistory" class="hidden">
+    <div class="panel-head"><h2>Riwayat Permintaan Link</h2></div>
+    <div id="historyTableWrap"></div>
+  </div>
+
+  <!-- TAB PENGGUNA -->
+  <div id="tabUsers" class="hidden">
+    <div class="panel-head">
+      <h2>Pengguna / Admin</h2>
+      <button class="btn btn-primary" onclick="openUserForm()">+ Tambah Admin</button>
+    </div>
+    <div id="usersTableWrap"></div>
+  </div>
+</div>
+
+<!-- ================= MODAL: FORM MOTOR ================= -->
+<div class="modal-bg hidden" id="motorModalBg">
+  <div class="modal">
+    <h3 id="motorModalTitle">Tambah Motor</h3>
+    <input type="hidden" id="motorId">
+    <div class="form-row2">
+      <div class="field"><label>Jenis (mis. Beat, Vario)</label><input id="mJenis"></div>
+      <div class="field"><label>Merek</label><input id="mMerek" placeholder="Honda / Yamaha / dll"></div>
+    </div>
+    <div class="form-row2">
+      <div class="field"><label>Tahun</label><input id="mTahun" type="number" placeholder="2010"></div>
+      <div class="field"><label>Pemakaian (km)</label><input id="mKm" type="number" placeholder="15000"></div>
+    </div>
+    <div class="field"><label>Kondisi Mesin</label><input id="mMesin" placeholder="mis. halus, ada suara kasar, dll"></div>
+    <div class="field"><label>Kondisi Eksterior</label><input id="mEksterior" placeholder="mis. mulus, baret halus, dll"></div>
+    <div class="field">
+      <label>Tipe</label>
+      <select id="mTipe"><option value="bersih">Bersih (surat lengkap)</option><option value="tidak bersih">Tidak bersih</option></select>
+    </div>
+    <div class="form-row2">
+      <div class="field"><label>Harga Beli (Rp)</label><input id="mHargaBeli" type="number" oninput="updateSuggest()"></div>
+      <div class="field"><label>Harga Jual Target (Rp)</label><input id="mHargaJual" type="number"></div>
+    </div>
+    <div class="suggest-box" id="suggestBox">Isi harga beli untuk lihat saran harga jual (+10% / +20%).</div>
+    <div class="field" style="margin-top:14px;"><label>Harga Jual Aktual — isi setelah motor benar-benar laku (Rp)</label><input id="mHargaJualAktual" type="number" placeholder="Kosongkan jika belum terjual"></div>
+    <div class="field"><label>Didapat dari mana</label><input id="mSumber" placeholder="mis. Facebook Marketplace, showroom X, dll"></div>
+    <div class="field"><label>Penjual</label><select id="mSeller"><option value="">— Belum diisi —</option></select></div>
+    <div class="field"><label>Status</label><select id="mStatus"><option value="tersedia">Tersedia</option><option value="terjual">Terjual</option></select></div>
+    <div class="field"><label>Catatan internal</label><textarea id="mCatatan"></textarea></div>
+
+    <div class="field">
+      <label>Foto</label>
+      <input type="file" id="mPhotoInput" accept="image/*" multiple onchange="handlePhotoSelect(event)">
+      <div class="photo-list" id="photoList"></div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeMotorForm()">Batal</button>
+      <button class="btn btn-primary" onclick="saveMotor()" id="saveMotorBtn">Simpan</button>
+    </div>
+    <div class="err" id="motorFormErr"></div>
+  </div>
+</div>
+
+<!-- ================= MODAL: FORM PENJUAL ================= -->
+<div class="modal-bg hidden" id="sellerModalBg">
+  <div class="modal">
+    <h3 id="sellerModalTitle">Tambah Penjual</h3>
+    <input type="hidden" id="sellerId">
+    <div class="field"><label>Nama</label><input id="sNama"></div>
+    <div class="field"><label>No. WhatsApp</label><input id="sNoWa" placeholder="08xxxxxxxxxx"></div>
+    <div class="field"><label>Alamat</label><textarea id="sAlamat"></textarea></div>
+    <div class="field"><label>Catatan</label><textarea id="sCatatan"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeSellerForm()">Batal</button>
+      <button class="btn btn-primary" onclick="saveSeller()">Simpan</button>
+    </div>
+    <div class="err" id="sellerFormErr"></div>
+  </div>
+</div>
+
+<!-- ================= MODAL: GANTI PASSWORD ================= -->
+<div class="modal-bg hidden" id="passModalBg">
+  <div class="modal" style="max-width:360px;">
+    <h3>Ganti Password</h3>
+    <div class="field"><label>Password Lama</label><input id="oldPass" type="password"></div>
+    <div class="field"><label>Password Baru</label><input id="newPass" type="password"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeChangePass()">Batal</button>
+      <button class="btn btn-primary" onclick="submitChangePass()">Simpan</button>
+    </div>
+    <div class="err" id="passErr"></div>
+    <div class="msg" id="passMsg"></div>
+  </div>
+</div>
+
+<!-- ================= MODAL: TAMBAH ADMIN ================= -->
+<div class="modal-bg hidden" id="userModalBg">
+  <div class="modal" style="max-width:360px;">
+    <h3>Tambah Admin</h3>
+    <div class="field"><label>Username</label><input id="uUsername"></div>
+    <div class="field"><label>Password</label><input id="uPassword" type="password"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeUserForm()">Batal</button>
+      <button class="btn btn-primary" onclick="saveUser()">Simpan</button>
+    </div>
+    <div class="err" id="userFormErr"></div>
+  </div>
+</div>
+
+<script>
+  const PUBLIC_MOTOR_ID = <?= JSON.stringify(publicMotorId) ?>;
+  const SESSION_KEY = 'mm_session';
+  let session = null;
+  let sellersCache = [];
+  let motorsCache = [];
+  let pendingPhotos = [];
+
+  window.addEventListener('DOMContentLoaded', () => {
+    if (PUBLIC_MOTOR_ID) {
+      show('publicScreen');
+      return;
+    }
+    const saved = localStorage.getItem(SESSION_KEY);
+    if (saved) {
+      session = JSON.parse(saved);
+      // validasi ke server dulu — kalau sesi sudah kedaluwarsa, baru diminta login lagi
+      google.script.run
+        .withSuccessHandler(res => {
+          session.username = res.username;
+          document.getElementById('whoami').textContent = 'Masuk sebagai ' + res.username;
+          show('appScreen');
+          loadAll();
+        })
+        .withFailureHandler(() => {
+          localStorage.removeItem(SESSION_KEY);
+          session = null;
+          show('loginScreen');
+        })
+        .checkSession(session.token);
+    } else {
+      show('loginScreen');
+    }
+  });
+
+  function show(id){
+    ['publicScreen','loginScreen','appScreen'].forEach(s => document.getElementById(s).classList.toggle('hidden', s !== id));
+  }
+
+  // ---------- LOGIN ----------
+  function doLogin(){
+    const u = document.getElementById('loginUser').value.trim();
+    const p = document.getElementById('loginPass').value;
+    document.getElementById('loginErr').textContent = '';
+    if(!u || !p){ document.getElementById('loginErr').textContent = 'Isi username & password.'; return; }
+    google.script.run
+      .withSuccessHandler(res => {
+        session = res;
+        localStorage.setItem(SESSION_KEY, JSON.stringify(res));
+        document.getElementById('whoami').textContent = 'Masuk sebagai ' + res.username;
+        show('appScreen');
+        loadAll();
+      })
+      .withFailureHandler(err => { document.getElementById('loginErr').textContent = err.message; })
+      .login(u, p);
+  }
+
+  function doLogout(){
+    google.script.run.logout(session.token);
+    localStorage.removeItem(SESSION_KEY);
+    session = null;
+    show('loginScreen');
+  }
+
+  function openChangePass(){
+    document.getElementById('oldPass').value=''; document.getElementById('newPass').value='';
+    document.getElementById('passErr').textContent=''; document.getElementById('passMsg').textContent='';
+    document.getElementById('passModalBg').classList.remove('hidden');
+  }
+  function closeChangePass(){ document.getElementById('passModalBg').classList.add('hidden'); }
+  function submitChangePass(){
+    const op = document.getElementById('oldPass').value;
+    const np = document.getElementById('newPass').value;
+    if(!op || !np){ document.getElementById('passErr').textContent = 'Lengkapi semua field.'; return; }
+    google.script.run
+      .withSuccessHandler(() => { document.getElementById('passMsg').textContent = 'Password berhasil diganti.'; document.getElementById('passErr').textContent = ''; })
+      .withFailureHandler(err => { document.getElementById('passErr').textContent = err.message; })
+      .changePassword(session.token, op, np);
+  }
+
+  // ---------- TABS ----------
+  function switchTab(name){
+    ['motor','seller','report','history','users'].forEach(t => {
+      document.getElementById('tab' + cap(t)).classList.toggle('hidden', t !== name);
+      document.getElementById('tab' + cap(t) + 'Btn').classList.toggle('active', t === name);
+    });
+    if(name === 'report') loadReport();
+    if(name === 'history') loadHistory();
+    if(name === 'users') loadUsers();
+  }
+  function cap(s){ return s.charAt(0).toUpperCase() + s.slice(1); }
+
+  function loadAll(){ loadSellers(); loadMotors(); }
+
+  // ---------- SELLERS ----------
+  function loadSellers(){
+    google.script.run.withSuccessHandler(list => { sellersCache = list; renderSellerList(); renderSellerOptions(list); }).withFailureHandler(handleAuthError).listSellers(session.token);
+  }
+
+  function renderSellerList(){
+    const q = (document.getElementById('sellerSearch').value || '').toLowerCase();
+    const list = sellersCache.filter(s => !q || [s.nama,s.noWa,s.alamat,s.catatan].some(v => (v||'').toLowerCase().includes(q)));
+    const el = document.getElementById('sellerList');
+    if(!list.length){ el.innerHTML = '<div class="empty-state">Tidak ada penjual yang cocok.</div>'; return; }
+    el.innerHTML = list.map(s => `
+      <div class="motor-card">
+        <div class="motor-info">
+          <div class="motor-title">${escapeHtml(s.nama || '(tanpa nama)')}</div>
+          <div class="motor-sub">${escapeHtml(s.noWa || '-')} · ${escapeHtml(s.alamat || '-')}</div>
+          ${s.catatan ? `<div class="motor-sub">${escapeHtml(s.catatan)}</div>` : ''}
+          <div class="motor-actions">
+            <button class="btn btn-ghost" onclick='openSellerForm(${JSON.stringify(s)})'>Edit</button>
+            <button class="btn btn-danger" onclick="removeSeller('${s.id}')">Hapus</button>
+          </div>
+        </div>
+      </div>`).join('');
+  }
+
+  function renderSellerOptions(list){
+    const sel = document.getElementById('mSeller');
+    sel.innerHTML = '<option value="">— Belum diisi —</option>' + list.map(s => `<option value="${s.id}">${escapeHtml(s.nama)} (${escapeHtml(s.noWa||'-')})</option>`).join('');
+  }
+
+  function openSellerForm(seller){
+    document.getElementById('sellerFormErr').textContent = '';
+    document.getElementById('sellerId').value = seller ? seller.id : '';
+    document.getElementById('sellerModalTitle').textContent = seller ? 'Edit Penjual' : 'Tambah Penjual';
+    document.getElementById('sNama').value = seller ? seller.nama : '';
+    document.getElementById('sNoWa').value = seller ? seller.noWa : '';
+    document.getElementById('sAlamat').value = seller ? seller.alamat : '';
+    document.getElementById('sCatatan').value = seller ? seller.catatan : '';
+    document.getElementById('sellerModalBg').classList.remove('hidden');
+  }
+  function closeSellerForm(){ document.getElementById('sellerModalBg').classList.add('hidden'); }
+
+  function saveSeller(){
+    const id = document.getElementById('sellerId').value;
+    const data = { nama: document.getElementById('sNama').value.trim(), noWa: document.getElementById('sNoWa').value.trim(), alamat: document.getElementById('sAlamat').value.trim(), catatan: document.getElementById('sCatatan').value.trim() };
+    if(!data.nama){ document.getElementById('sellerFormErr').textContent = 'Nama wajib diisi.'; return; }
+    const onDone = () => { closeSellerForm(); loadSellers(); };
+    const onErr = err => document.getElementById('sellerFormErr').textContent = err.message;
+    const call = google.script.run.withSuccessHandler(onDone).withFailureHandler(onErr);
+    if(id) call.updateSeller(session.token, id, data); else call.addSeller(session.token, data);
+  }
+
+  function removeSeller(id){
+    if(!confirm('Hapus penjual ini?')) return;
+    google.script.run.withSuccessHandler(loadSellers).withFailureHandler(e => alert(e.message)).deleteSeller(session.token, id);
+  }
+
+  // ---------- MOTORS ----------
+  function loadMotors(){
+    google.script.run.withSuccessHandler(list => { motorsCache = list; renderMotorList(); }).withFailureHandler(handleAuthError).listMotors(session.token);
+  }
+
+  function renderMotorList(){
+    const q = (document.getElementById('motorSearch').value || '').toLowerCase();
+    const fStatus = document.getElementById('motorFilterStatus').value;
+    const fTipe = document.getElementById('motorFilterTipe').value;
+    const list = motorsCache.filter(m => {
+      if(fStatus && m.status !== fStatus) return false;
+      if(fTipe && m.tipeBersih !== fTipe) return false;
+      if(!q) return true;
+      const hay = [m.jenis,m.merek,String(m.tahun||''),m.sumberDari,m.mesinKondisi,m.eksteriorKondisi,m.catatan, m.seller ? m.seller.nama : '', m.seller ? m.seller.noWa : ''].join(' ').toLowerCase();
+      return hay.includes(q);
+    });
+    document.getElementById('motorCount').textContent = `Daftar Motor (${list.length} dari ${motorsCache.length})`;
+    const el = document.getElementById('motorList');
+    if(!list.length){ el.innerHTML = '<div class="empty-state">Tidak ada motor yang cocok dengan pencarian/filter.</div>'; return; }
+    el.innerHTML = list.map(m => {
+      const foto = (m.fotoUrls || '').split(',').filter(Boolean);
+      const thumb = foto.length ? `<img class="motor-thumb" src="${foto[0]}">` : `<div class="motor-thumb empty">Tanpa foto</div>`;
+      const naik10 = m.hargaBeli ? Math.round(m.hargaBeli * 1.1) : 0;
+      const naik20 = m.hargaBeli ? Math.round(m.hargaBeli * 1.2) : 0;
+      const profitLine = (m.status === 'terjual' && m.hargaJualAktual) ? `<div style="color:var(--ok)">Untung: <b>${formatRp(Number(m.hargaJualAktual) - Number(m.hargaBeli||0))}</b></div>` : '';
+      return `
+      <div class="motor-card">
+        ${thumb}
+        <div class="motor-info">
+          <div class="motor-title">${escapeHtml(m.merek||'')} ${escapeHtml(m.jenis||'')} ${m.tahun||''} <span class="badge badge-${m.status==='terjual'?'terjual':'tersedia'}">${m.status==='terjual'?'Terjual':'Tersedia'}</span></div>
+          <div class="motor-sub">${escapeHtml(m.pemakaianKm ? m.pemakaianKm+' km' : '-')} · ${escapeHtml(m.tipeBersih||'-')} ${m.seller ? '· Penjual: '+escapeHtml(m.seller.nama) : ''} · ${m.viewCount||0}x diminta pembeli</div>
+          <div class="price-row">
+            <div>Beli: <b>${formatRp(m.hargaBeli)}</b></div>
+            <div>Target jual: <b>${formatRp(m.hargaJualTarget)}</b></div>
+            ${m.hargaBeli ? `<div style="color:var(--steel-light)">Saran +10–20%: ${formatRp(naik10)} – ${formatRp(naik20)}</div>` : ''}
+            ${profitLine}
+          </div>
+          <div class="motor-actions">
+            <button class="btn btn-primary" onclick="shareMotor('${m.id}')">Bagikan ke Pembeli</button>
+            <button class="btn btn-ghost" onclick='editMotor(${JSON.stringify(m)})'>Edit</button>
+            <button class="btn btn-danger" onclick="removeMotor('${m.id}')">Hapus</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function shareMotor(id){
+    const url = window.location.href.split('?')[0] + '?id=' + id;
+    navigator.clipboard && navigator.clipboard.writeText(url).catch(()=>{});
+    prompt('Link ini hanya menampilkan motor tsb tanpa info penjual. Salin & kirim ke pembeli:', url);
+  }
+
+  function openMotorForm(){ resetMotorForm(); document.getElementById('motorModalTitle').textContent = 'Tambah Motor'; document.getElementById('motorModalBg').classList.remove('hidden'); }
+  function closeMotorForm(){ document.getElementById('motorModalBg').classList.add('hidden'); }
+
+  function resetMotorForm(){
+    document.getElementById('motorId').value = '';
+    ['mJenis','mMerek','mTahun','mKm','mMesin','mEksterior','mHargaBeli','mHargaJual','mHargaJualAktual','mSumber','mCatatan'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('mTipe').value = 'bersih';
+    document.getElementById('mSeller').value = '';
+    document.getElementById('mStatus').value = 'tersedia';
+    document.getElementById('motorFormErr').textContent = '';
+    document.getElementById('suggestBox').innerHTML = 'Isi harga beli untuk lihat saran harga jual (+10% / +20%).';
+    pendingPhotos = [];
+    renderPhotoList();
+  }
+
+  function editMotor(m){
+    resetMotorForm();
+    document.getElementById('motorId').value = m.id;
+    document.getElementById('motorModalTitle').textContent = 'Edit Motor';
+    document.getElementById('mJenis').value = m.jenis || '';
+    document.getElementById('mMerek').value = m.merek || '';
+    document.getElementById('mTahun').value = m.tahun || '';
+    document.getElementById('mKm').value = m.pemakaianKm || '';
+    document.getElementById('mMesin').value = m.mesinKondisi || '';
+    document.getElementById('mEksterior').value = m.eksteriorKondisi || '';
+    document.getElementById('mTipe').value = m.tipeBersih || 'bersih';
+    document.getElementById('mHargaBeli').value = m.hargaBeli || '';
+    document.getElementById('mHargaJual').value = m.hargaJualTarget || '';
+    document.getElementById('mHargaJualAktual').value = m.hargaJualAktual || '';
+    document.getElementById('mSumber').value = m.sumberDari || '';
+    document.getElementById('mSeller').value = m.sellerId || '';
+    document.getElementById('mStatus').value = m.status || 'tersedia';
+    document.getElementById('mCatatan').value = m.catatan || '';
+    updateSuggest();
+    pendingPhotos = (m.fotoUrls || '').split(',').filter(Boolean).map(u => ({ url: u }));
+    renderPhotoList();
+    document.getElementById('motorModalBg').classList.remove('hidden');
+  }
+
+  function updateSuggest(){
+    const beli = Number(document.getElementById('mHargaBeli').value) || 0;
+    const box = document.getElementById('suggestBox');
+    box.innerHTML = beli ? `Saran harga jual — <b>+10%: ${formatRp(Math.round(beli*1.1))}</b> &nbsp;|&nbsp; <b>+20%: ${formatRp(Math.round(beli*1.2))}</b>` : 'Isi harga beli untuk lihat saran harga jual (+10% / +20%).';
+  }
+
+  function handlePhotoSelect(evt){
+    const files = Array.from(evt.target.files || []);
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = e => { pendingPhotos.push({ dataUrl: e.target.result, base64: e.target.result.split(',')[1], mimeType: file.type, fileName: file.name }); renderPhotoList(); };
+      reader.readAsDataURL(file);
+    });
+    evt.target.value = '';
+  }
+
+  function renderPhotoList(){
+    document.getElementById('photoList').innerHTML = pendingPhotos.map((p, idx) => `<div class="photo-thumb"><img src="${p.url || p.dataUrl}"><button class="rm" onclick="removePhoto(${idx})">×</button></div>`).join('');
+  }
+  function removePhoto(idx){ pendingPhotos.splice(idx,1); renderPhotoList(); }
+
+  function saveMotor(){
+    const jenis = document.getElementById('mJenis').value.trim();
+    if(!jenis){ document.getElementById('motorFormErr').textContent = 'Jenis motor wajib diisi.'; return; }
+    const btn = document.getElementById('saveMotorBtn');
+    btn.disabled = true; btn.textContent = 'Menyimpan…';
+
+    const toUpload = pendingPhotos.filter(p => !p.url);
+    const already = pendingPhotos.filter(p => p.url).map(p => p.url);
+
+    function finishSave(allUrls){
+      const data = {
+        jenis: jenis, merek: document.getElementById('mMerek').value.trim(), tahun: document.getElementById('mTahun').value,
+        mesinKondisi: document.getElementById('mMesin').value.trim(), eksteriorKondisi: document.getElementById('mEksterior').value.trim(),
+        pemakaianKm: document.getElementById('mKm').value, tipeBersih: document.getElementById('mTipe').value,
+        hargaBeli: document.getElementById('mHargaBeli').value, hargaJualTarget: document.getElementById('mHargaJual').value,
+        hargaJualAktual: document.getElementById('mHargaJualAktual').value,
+        sumberDari: document.getElementById('mSumber').value.trim(), sellerId: document.getElementById('mSeller').value,
+        status: document.getElementById('mStatus').value, catatan: document.getElementById('mCatatan').value.trim(),
+        fotoUrls: allUrls.join(',')
+      };
+      const id = document.getElementById('motorId').value;
+      const onDone = () => { btn.disabled=false; btn.textContent='Simpan'; closeMotorForm(); loadMotors(); };
+      const onErr = err => { btn.disabled=false; btn.textContent='Simpan'; document.getElementById('motorFormErr').textContent = err.message; };
+      const call = google.script.run.withSuccessHandler(onDone).withFailureHandler(onErr);
+      if(id) call.updateMotor(session.token, id, data); else call.addMotor(session.token, data);
+    }
+
+    if(!toUpload.length){ finishSave(already); return; }
+    let uploaded = [], count = 0;
+    toUpload.forEach(p => {
+      google.script.run
+        .withSuccessHandler(url => { uploaded.push(url); count++; if(count === toUpload.length) finishSave(already.concat(uploaded)); })
+        .withFailureHandler(err => { btn.disabled=false; btn.textContent='Simpan'; document.getElementById('motorFormErr').textContent = 'Gagal upload foto: ' + err.message; })
+        .uploadPhoto(session.token, p.base64, p.mimeType, p.fileName);
+    });
+  }
+
+  function removeMotor(id){
+    if(!confirm('Hapus motor ini?')) return;
+    google.script.run.withSuccessHandler(loadMotors).withFailureHandler(e => alert(e.message)).deleteMotor(session.token, id);
+  }
+
+  // ---------- LAPORAN ----------
+  function loadReport(){
+    google.script.run.withSuccessHandler(renderReport).withFailureHandler(handleAuthError).getProfitReport(session.token);
+  }
+  function renderReport(r){
+    document.getElementById('reportStats').innerHTML = `
+      <div class="stat-card"><div class="label">Unit Terjual</div><div class="value">${r.totalUnit}</div></div>
+      <div class="stat-card"><div class="label">Total Untung</div><div class="value ${r.totalProfit>=0?'pos':'neg'}">${formatRp(r.totalProfit)}</div></div>
+      <div class="stat-card"><div class="label">Rata-rata Margin</div><div class="value ${r.avgMargin>=0?'pos':'neg'}">${r.avgMargin.toFixed(1)}%</div></div>`;
+    const wrap = document.getElementById('reportTableWrap');
+    if(!r.rows.length){ wrap.innerHTML = '<div class="empty-state">Belum ada motor terjual dengan harga jual aktual terisi. Isi field "Harga Jual Aktual" saat edit motor yang sudah laku.</div>'; return; }
+    wrap.innerHTML = `<table><thead><tr><th>Motor</th><th>Harga Beli</th><th>Harga Jual</th><th>Untung</th><th>Margin</th></tr></thead><tbody>
+      ${r.rows.map(row => `<tr><td>${escapeHtml(row.label)}</td><td>${formatRp(row.hargaBeli)}</td><td>${formatRp(row.hargaJualAktual)}</td><td style="color:${row.profit>=0?'var(--ok)':'var(--danger)'}">${formatRp(row.profit)}</td><td>${row.margin.toFixed(1)}%</td></tr>`).join('')}
+      </tbody></table>`;
+  }
+
+  // ---------- RIWAYAT ----------
+  function loadHistory(){
+    google.script.run.withSuccessHandler(renderHistory).withFailureHandler(handleAuthError).listLinkViews(session.token);
+  }
+  function renderHistory(views){
+    const wrap = document.getElementById('historyTableWrap');
+    if(!views.length){ wrap.innerHTML = '<div class="empty-state">Belum ada yang membuka link motor.</div>'; return; }
+    wrap.innerHTML = `<table><thead><tr><th>Waktu</th><th>Motor</th><th>Nama Peminta</th></tr></thead><tbody>
+      ${views.map(v => `<tr><td>${formatDate(v.viewedAt)}</td><td>${escapeHtml(v.motorLabel)}</td><td>${escapeHtml(v.viewerName)}</td></tr>`).join('')}
+      </tbody></table>`;
+  }
+
+  // ---------- PENGGUNA ----------
+  function loadUsers(){
+    google.script.run.withSuccessHandler(renderUsers).withFailureHandler(handleAuthError).listUsers(session.token);
+  }
+  function renderUsers(users){
+    const wrap = document.getElementById('usersTableWrap');
+    wrap.innerHTML = `<table><thead><tr><th>Username</th><th>Dibuat</th><th></th></tr></thead><tbody>
+      ${users.map(u => `<tr><td>${escapeHtml(u.username)}${u.username===session.username?' (Anda)':''}</td><td>${formatDate(u.createdAt)}</td>
+        <td>${u.username===session.username?'':`<button class="btn btn-danger" style="padding:5px 10px;font-size:12px;" onclick="removeUser('${u.username}')">Hapus</button>`}</td></tr>`).join('')}
+      </tbody></table>`;
+  }
+  function openUserForm(){
+    document.getElementById('uUsername').value=''; document.getElementById('uPassword').value='';
+    document.getElementById('userFormErr').textContent='';
+    document.getElementById('userModalBg').classList.remove('hidden');
+  }
+  function closeUserForm(){ document.getElementById('userModalBg').classList.add('hidden'); }
+  function saveUser(){
+    const u = document.getElementById('uUsername').value.trim();
+    const p = document.getElementById('uPassword').value;
+    if(!u || !p){ document.getElementById('userFormErr').textContent = 'Lengkapi username & password.'; return; }
+    google.script.run
+      .withSuccessHandler(() => { closeUserForm(); loadUsers(); })
+      .withFailureHandler(err => { document.getElementById('userFormErr').textContent = err.message; })
+      .addUser(session.token, u, p);
+  }
+  function removeUser(username){
+    if(!confirm('Hapus admin "' + username + '"?')) return;
+    google.script.run.withSuccessHandler(loadUsers).withFailureHandler(e => alert(e.message)).deleteUser(session.token, username);
+  }
+
+  // ---------- PUBLIC VIEW ----------
+  function loadPublicMotor(){
+    const name = document.getElementById('viewerName').value.trim();
+    document.getElementById('publicGate').classList.add('hidden');
+    document.getElementById('publicContent').innerHTML = '<div class="loading">Memuat data motor…</div>';
+    google.script.run
+      .withSuccessHandler(renderPublicMotor)
+      .withFailureHandler(err => { document.getElementById('publicContent').innerHTML = `<div class="empty-state">${escapeHtml(err.message)}</div>`; })
+      .getPublicMotor(PUBLIC_MOTOR_ID, name);
+  }
+
+  function renderPublicMotor(m){
+    const foto = (m.fotoUrls || '').split(',').filter(Boolean);
+    const gallery = foto.length ? `<div class="public-gallery">${foto.map(u => `<img src="${u}">`).join('')}</div>` : '';
+    document.getElementById('publicContent').innerHTML = `
+      ${gallery}
+      <div class="public-card">
+        <div style="font-size:19px; font-weight:800;">${escapeHtml(m.merek||'')} ${escapeHtml(m.jenis||'')} ${m.tahun||''}</div>
+        <div class="public-price">${formatRp(m.hargaJualTarget)}</div>
+        <div class="spec-row"><span>Status</span><span>${m.status==='terjual'?'Terjual':'Tersedia'}</span></div>
+        <div class="spec-row"><span>Kondisi mesin</span><span>${escapeHtml(m.mesinKondisi||'-')}</span></div>
+        <div class="spec-row"><span>Kondisi eksterior</span><span>${escapeHtml(m.eksteriorKondisi||'-')}</span></div>
+        <div class="spec-row"><span>Pemakaian</span><span>${m.pemakaianKm ? m.pemakaianKm+' km' : '-'}</span></div>
+        <div class="spec-row"><span>Tipe</span><span>${escapeHtml(m.tipeBersih||'-')}</span></div>
+      </div>`;
+  }
+
+  // ---------- UTIL ----------
+  function handleAuthError(err){
+    alert(err.message);
+    localStorage.removeItem(SESSION_KEY);
+    session = null;
+    show('loginScreen');
+  }
+  function formatRp(n){ n = Number(n) || 0; return 'Rp' + n.toLocaleString('id-ID'); }
+  function formatDate(d){ try { return new Date(d).toLocaleString('id-ID'); } catch(e){ return String(d); } }
+  function escapeHtml(str){ return String(str == null ? '' : str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+</script>
+</body>
+</html>
